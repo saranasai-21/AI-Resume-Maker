@@ -30,6 +30,15 @@ const AlertCircleIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
 );
 
+const ImageIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+);
+
+const BuildingIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>
+);
+
+
 // Prepopulated sample data
 const SAMPLE_RESUME = `JOHN DOE
 john.doe@email.com | (123) 456-7890 | Seattle, WA | linkedin.com/in/johndoe
@@ -147,13 +156,16 @@ const MOCK_TAILORED_HTML = `<div style="font-family: Arial, sans-serif; padding:
 function App() {
   const [resumeText, setResumeText] = useState(SAMPLE_RESUME);
   const [jobDescription, setJobDescription] = useState(SAMPLE_JD);
+  const [jobImageBase64, setJobImageBase64] = useState('');
+  const [advancedEnabled, setAdvancedEnabled] = useState(false);
+  const [companyName, setCompanyName] = useState('');
+  
   const [optimizedHtml, setOptimizedHtml] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [theme, setTheme] = useState('dark');
   const [previewScale, setPreviewScale] = useState(1);
   const [fontSize, setFontSize] = useState(11);
-  const [hasApiKeyError, setHasApiKeyError] = useState(false);
 
   const previewWrapperRef = useRef(null);
   const previewContainerRef = useRef(null);
@@ -193,9 +205,6 @@ function App() {
     container.style.fontSize = `${size}px`;
     container.style.setProperty('--base-font-size', `${size}px`);
 
-    // Let the DOM render and reflow
-    // Loop: if scrollHeight exceeds A4 height (1123px), decrement font size by 0.5px
-    // Stop at 8px minimum
     while (container.scrollHeight > 1123 && size > 8) {
       size -= 0.5;
       container.style.fontSize = `${size}px`;
@@ -212,7 +221,6 @@ function App() {
   const loadDemo = () => {
     setIsLoading(true);
     setErrorMessage('');
-    setHasApiKeyError(false);
     
     // Simulate a brief AI loading delay for beautiful UI effect
     setTimeout(() => {
@@ -221,58 +229,57 @@ function App() {
     }, 1200);
   };
 
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setJobImageBase64(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setJobImageBase64('');
+  };
+
   const handleOptimize = async () => {
-    if (!resumeText.trim() || !jobDescription.trim()) {
-      setErrorMessage('Please paste both your existing resume and the job description.');
+    if (!resumeText.trim() || (!jobDescription.trim() && !jobImageBase64)) {
+      setErrorMessage('Please provide both an existing resume and a job description (text or image).');
+      return;
+    }
+    if (advancedEnabled && !companyName.trim()) {
+      setErrorMessage('Please enter the target company name or disable Advanced Company Research.');
       return;
     }
 
     setIsLoading(true);
     setErrorMessage('');
-    setHasApiKeyError(false);
     setOptimizedHtml('');
 
-    const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY || 
-                   import.meta.env.VITE_CLAUDE_API_KEY || 
-                   window.VITE_ANTHROPIC_API_KEY || 
-                   '';
-
-    if (!apiKey) {
-      setErrorMessage('API Key is missing. Please ensure VITE_ANTHROPIC_API_KEY is configured.');
-      setHasApiKeyError(true);
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      // Point to local FastAPI proxy backend
+      const response = await fetch('/api/optimize', {
         method: 'POST',
         headers: {
-          'content-type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 4000,
-          system: "You are a professional resume writer. The user will give you their resume and a job description. Your task:\n1. Rewrite the Career Objective to perfectly match the job role and keywords\n2. Update the Skills section to highlight skills most relevant to the job\n3. Adjust project descriptions, achievements, and experience bullet points to use keywords and language from the JD\n4. Keep all real facts — do NOT invent experience or education\n5. Return ONLY valid HTML for the resume body (no markdown, no explanation), using inline styles, structured for an A4 page\n6. The HTML must use a clean, professional single-column layout with sections: Career Objective, Skills, Experience, Projects, Education, Certifications (only if present)\n7. Use font-family: 'Georgia', serif for headings and 'Arial', sans-serif for body\n8. Make the design ATS-friendly: no tables, no columns, no images",
-          messages: [
-            {
-              role: 'user',
-              content: `RESUME:\n${resumeText}\n\nJOB DESCRIPTION:\n${jobDescription}\n\nReturn only the resume HTML.`
-            }
-          ]
+          resume_text: resumeText,
+          job_description_text: jobDescription,
+          job_image_base64: jobImageBase64,
+          company_name: advancedEnabled ? companyName : ''
         })
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data?.error?.message || `API error: ${response.status} ${response.statusText}`);
+        throw new Error(data?.detail || `API error: ${response.status} ${response.statusText}`);
       }
 
-      const content = data.content[0].text;
+      const content = data.html;
 
       // Clean up markdown block fences if included by the LLM
       let cleanHtml = content.trim();
@@ -289,7 +296,7 @@ function App() {
       setOptimizedHtml(cleanHtml);
     } catch (err) {
       console.error(err);
-      setErrorMessage(err.message || 'An unexpected error occurred while communicating with Claude.');
+      setErrorMessage(err.message || 'An unexpected error occurred while communicating with the backend.');
     } finally {
       setIsLoading(false);
     }
@@ -502,7 +509,7 @@ function App() {
               <AlertCircleIcon />
               <div style={{ flex: 1 }}>
                 <span>{errorMessage}</span>
-                {hasApiKeyError && (
+                {errorMessage.includes("API error") && (
                   <div style={{ marginTop: '8px' }}>
                     <button 
                       onClick={loadDemo}
@@ -544,19 +551,67 @@ function App() {
             <h2 className="card-title">
               <BriefcaseIcon /> Job Description
             </h2>
-            <p className="card-subtitle">Paste the job description you are targeting</p>
+            <p className="card-subtitle">Paste the job description or upload an image</p>
             <textarea
               className="resume-textarea"
-              placeholder="Paste the target job description here to align your resume keywords..."
+              placeholder="Paste the target job description here..."
               value={jobDescription}
               onChange={(e) => setJobDescription(e.target.value)}
+              style={{ height: '140px' }}
             />
+            
+            <div className="image-upload-container">
+              <label className="image-upload-btn">
+                <ImageIcon />
+                <span>Upload JD Image</span>
+                <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
+              </label>
+              {jobImageBase64 && (
+                <div className="image-preview-badge">
+                  <span>Image Attached</span>
+                  <button onClick={removeImage} className="remove-img-btn" title="Remove image">&times;</button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="input-card">
+            <div className="advanced-toggle-header">
+              <div>
+                <h2 className="card-title" style={{ fontSize: '1.05rem' }}>
+                  <BuildingIcon /> Advanced Company Research
+                </h2>
+                <p className="card-subtitle" style={{ marginTop: '4px', fontSize: '0.8rem' }}>
+                  Tailor to the company's culture and recruitment patterns
+                </p>
+              </div>
+              <label className="toggle-switch">
+                <input 
+                  type="checkbox" 
+                  checked={advancedEnabled} 
+                  onChange={(e) => setAdvancedEnabled(e.target.checked)} 
+                />
+                <span className="slider round"></span>
+              </label>
+            </div>
+            
+            {advancedEnabled && (
+              <div className="advanced-input-container">
+                <input 
+                  type="text" 
+                  className="company-input" 
+                  placeholder="Enter target company name (e.g. CyberNext)..."
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                />
+              </div>
+            )}
           </div>
 
           <button
             className="optimize-btn"
             onClick={handleOptimize}
-            disabled={isLoading || !resumeText.trim() || !jobDescription.trim()}
+            disabled={isLoading || !resumeText.trim() || (!jobDescription.trim() && !jobImageBase64)}
           >
             {isLoading ? (
               <>
