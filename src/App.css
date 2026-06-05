@@ -1,0 +1,509 @@
+/* App Layout */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  transition: background-color var(--transition-normal);
+}
+
+/* Header */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 40px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  transition: background-color var(--transition-normal), border-color var(--transition-normal);
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-icon {
+  width: 36px;
+  height: 36px;
+  color: var(--accent-color);
+  background: var(--bg-tertiary);
+  padding: 8px;
+  border-radius: var(--border-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color);
+}
+
+.logo-text {
+  font-size: 1.5rem;
+  font-weight: 800;
+  font-family: 'Outfit', sans-serif;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.logo-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--accent-gradient);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 10px;
+  vertical-align: middle;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.theme-toggle-btn {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+}
+
+.theme-toggle-btn:hover {
+  background: var(--border-color);
+  transform: rotate(15deg) scale(1.05);
+}
+
+/* Main workspace */
+.main-content {
+  display: flex;
+  flex: 1;
+  padding: 24px 40px;
+  gap: 32px;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1024px) {
+  .main-content {
+    flex-direction: column;
+    padding: 16px 20px;
+  }
+  .app-header {
+    padding: 16px 20px;
+  }
+}
+
+/* Left Panel (Inputs) */
+.left-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0; /* Prevents overflow in flexbox */
+}
+
+.input-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all var(--transition-normal);
+}
+
+.input-card:hover {
+  border-color: var(--border-color);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+}
+
+.card-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+}
+
+.card-title svg {
+  color: var(--accent-color);
+}
+
+.card-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: -6px;
+}
+
+.resume-textarea {
+  width: 100%;
+  height: 200px;
+  padding: 14px;
+  border-radius: var(--border-radius-md);
+  border: 1.5px solid var(--border-color);
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  transition: all var(--transition-fast);
+}
+
+.resume-textarea:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.optimize-btn {
+  width: 100%;
+  padding: 16px 24px;
+  background: var(--accent-gradient);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-md);
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 4px 20px var(--accent-glow);
+  position: relative;
+  overflow: hidden;
+  transition: all var(--transition-fast);
+}
+
+.optimize-btn:hover:not(:disabled) {
+  background: var(--accent-gradient-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px var(--accent-glow);
+}
+
+.optimize-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.optimize-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Spinner */
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Right Panel (Output) */
+.right-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
+  min-width: 0;
+}
+
+.output-header {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  align-items: center;
+}
+
+.output-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* Responsive A4 Preview wrapper */
+.preview-wrapper {
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 500px;
+  background-color: var(--bg-tertiary);
+  border-radius: var(--border-radius-lg);
+  padding: 24px;
+  border: 1px dashed var(--border-color);
+  position: relative;
+}
+
+/* Scroll wrapper if height of screen is too small */
+.preview-scroll-container {
+  width: 100%;
+  overflow-x: auto;
+  display: flex;
+  justify-content: center;
+}
+
+.preview-container {
+  width: 794px;
+  height: 1123px;
+  background: #ffffff;
+  color: #1a1a1a;
+  box-shadow: var(--shadow-lg);
+  border-radius: 4px;
+  transform: scale(var(--preview-scale, 1));
+  transform-origin: top center;
+  margin-bottom: calc(1123px * (var(--preview-scale, 1) - 1));
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  transition: transform var(--transition-fast);
+}
+
+.preview-content {
+  width: 100%;
+  height: 100%;
+  padding: 40px;
+  box-sizing: border-box;
+  text-align: left;
+  line-height: 1.4;
+  word-wrap: break-word;
+  background: #ffffff;
+}
+
+/* Action Buttons below preview */
+.action-buttons {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.download-btn {
+  flex: 1;
+  max-width: 200px;
+  padding: 12px 20px;
+  background: var(--bg-secondary);
+  border: 1.5px solid var(--border-color);
+  color: var(--text-primary);
+  border-radius: var(--border-radius-md);
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+}
+
+.download-btn:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--text-muted);
+  transform: translateY(-1px);
+}
+
+.download-btn:active {
+  transform: translateY(1px);
+}
+
+.download-btn.pdf-btn {
+  border-color: rgba(239, 68, 68, 0.4);
+}
+.download-btn.pdf-btn:hover {
+  background: rgba(239, 68, 68, 0.05);
+  border-color: #ef4444;
+}
+
+.download-btn.docx-btn {
+  border-color: rgba(59, 130, 246, 0.4);
+}
+.download-btn.docx-btn:hover {
+  background: rgba(59, 130, 246, 0.05);
+  border-color: #3b82f6;
+}
+
+/* Empty State / Loading State styling */
+.empty-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #6b7280;
+  gap: 16px;
+  text-align: center;
+  padding: 40px;
+}
+
+.empty-preview-icon {
+  width: 64px;
+  height: 64px;
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+.empty-preview-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.empty-preview-text {
+  font-size: 0.9rem;
+  max-width: 320px;
+}
+
+.loading-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.95);
+  color: #1f2937;
+  gap: 20px;
+}
+
+.loading-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--accent-color);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* Error banner */
+.error-banner {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--error-color);
+  color: var(--error-color);
+  padding: 16px;
+  border-radius: var(--border-radius-md);
+  font-size: 0.9rem;
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.error-banner svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Resume Styling (Inside PDF Preview) */
+/* Reset list and headers inside resume preview content */
+.resume-body h1, .resume-body h2, .resume-body h3, .resume-body h4 {
+  font-family: 'Georgia', serif;
+  color: #111827;
+  font-weight: 700;
+}
+
+.resume-body p, .resume-body li, .resume-body span {
+  font-family: 'Arial', sans-serif;
+  color: #374151;
+}
+
+.resume-body h1 {
+  font-size: 2.2em !important;
+  text-align: center;
+  margin-bottom: 4px !important;
+  text-transform: capitalize;
+}
+
+.resume-body h2 {
+  font-size: 1.3em !important;
+  border-bottom: 1px solid #111827;
+  padding-bottom: 2px;
+  margin-top: 14px !important;
+  margin-bottom: 6px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.resume-body p {
+  margin-bottom: 6px;
+}
+
+.resume-body ul {
+  padding-left: 20px;
+  margin-bottom: 8px;
+}
+
+.resume-body li {
+  margin-bottom: 4px;
+}
+
+.resume-body a {
+  color: #111827;
+  text-decoration: underline;
+}
+
+.resume-body strong {
+  color: #111827;
+}
+
+.resume-header-info {
+  text-align: center;
+  font-size: 0.95em;
+  margin-bottom: 12px !important;
+  color: #4b5563 !important;
+}
+
+.resume-section-item {
+  margin-bottom: 10px;
+}
+
+.resume-item-title {
+  display: flex;
+  justify-content: space-between;
+  font-weight: bold;
+  margin-bottom: 2px;
+}
+
+.resume-item-subtitle {
+  display: flex;
+  justify-content: space-between;
+  font-style: italic;
+  font-size: 0.95em;
+  color: #4b5563;
+  margin-bottom: 4px;
+}
