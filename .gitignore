@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Python build and cache files
+__pycache__/
+*.pyc
+scratch/
+
