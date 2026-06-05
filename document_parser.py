@@ -59,3 +59,25 @@ def extract_text_from_file(uploaded_file) -> str:
             except Exception as e2:
                 st.error(f"Failed to read file as text: {e2}")
                 return ""
+
+def convert_html_to_text(html_content: str) -> str:
+    """
+    Convert HTML resume structure into readable markdown/plain text format.
+    """
+    import re
+    text = html_content
+    # Replace headers with markdown equivalent
+    text = re.sub(r'</?(h1|H1)[^>]*>', '\n# ', text)
+    text = re.sub(r'</?(h2|H2)[^>]*>', '\n\n## ', text)
+    text = re.sub(r'</?(h3|H3)[^>]*>', '\n\n### ', text)
+    # Replace list tags
+    text = re.sub(r'</?li[^>]*>', '\n- ', text)
+    # Replace line breaks and paragraph/div containers
+    text = re.sub(r'<br\s*/?>', '\n', text)
+    text = re.sub(r'</?(p|div|section)[^>]*>', '\n', text)
+    # Strip all other HTML tags
+    text = re.sub(r'<[^>]+>', '', text)
+    # Clean up double/triple newlines and spacing
+    text = re.sub(r'\n\s*\n+', '\n\n', text)
+    return text.strip()
+
