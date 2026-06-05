@@ -2,23 +2,31 @@ import os
 import streamlit as st
 import requests
 import base64
+import io
+
+try:
+    from pypdf import PdfReader
+except ImportError:
+    pass
+
+try:
+    from docx import Document
+except ImportError:
+    pass
 
 # --- API Configuration and Fallback Logic ---
 
 def get_providers():
     providers = []
-    # Collect all Gemini keys (1 through 6)
     for i in range(1, 7):
         key = os.getenv(f"GEMINI_KEY_{i}")
         if key:
             providers.append({"type": "gemini", "key": key})
             
-    # Collect Groq Key
     groq_key = os.getenv("GROQ_KEY")
     if groq_key:
         providers.append({"type": "groq", "key": groq_key})
         
-    # Collect OpenRouter Key
     or_key = os.getenv("OPENROUTER_KEY")
     if or_key:
         providers.append({"type": "openrouter", "key": or_key})
@@ -37,7 +45,7 @@ SYSTEM_PROMPT = """You are a professional resume writer. The user will give you 
 
 def call_gemini(key, sys_prompt, prompt, image_b64):
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={key}"
-    parts = [{"text": f"SYSTEM: {sys_prompt}\\n\\nUSER: {prompt}"}]
+    parts = [{"text": f"SYSTEM: {sys_prompt}\n\nUSER: {prompt}"}]
     
     if image_b64 and "," in image_b64:
         try:
@@ -110,9 +118,9 @@ def optimize_resume(resume_text, job_description_text, job_image_base64, company
         
     sys_prompt = SYSTEM_PROMPT
     if company_name:
-        sys_prompt += f"\\n\\nIMPORTANT ADVANCED DIRECTIVE: You must act as an expert recruiter for {company_name}. Research and use your knowledge of {company_name}'s past recruitment preferences, company culture, and successful resume patterns for this specific role. Tailor the resume strongly to appeal directly to what {company_name} looks for in candidates."
+        sys_prompt += f"\n\nIMPORTANT ADVANCED DIRECTIVE: You must act as an expert recruiter for {company_name}. Research and use your knowledge of {company_name}'s past recruitment preferences, company culture, and successful resume patterns for this specific role. Tailor the resume strongly to appeal directly to what {company_name} looks for in candidates."
 
-    prompt = f"RESUME:\\n{resume_text}\\n\\nJOB DESCRIPTION:\\n{job_description_text}\\n\\nReturn ONLY the HTML."
+    prompt = f"RESUME:\n{resume_text}\n\nJOB DESCRIPTION:\n{job_description_text}\n\nReturn ONLY the HTML."
     
     errors = []
     for p in providers:
@@ -137,6 +145,30 @@ def optimize_resume(resume_text, job_description_text, job_image_base64, company
     
     return f"<h2 style='color:red;'>All API providers failed or rate limited.</h2><p>{str(errors)}</p>"
 
+def extract_text_from_file(uploaded_file):
+    if uploaded_file.name.endswith(".pdf"):
+        try:
+            reader = PdfReader(uploaded_file)
+            text = ""
+            for page in reader.pages:
+                text += page.extract_text() + "\n"
+            return text
+        except Exception as e:
+            st.error(f"Error reading PDF: {e}")
+            return ""
+    elif uploaded_file.name.endswith(".docx"):
+        try:
+            doc = Document(uploaded_file)
+            text = "\n".join([para.text for para in doc.paragraphs])
+            return text
+        except Exception as e:
+            st.error(f"Error reading DOCX: {e}")
+            return ""
+    else:
+        try:
+            return uploaded_file.getvalue().decode("utf-8")
+        except:
+            return ""
 
 # --- UI Layout ---
 
@@ -144,15 +176,21 @@ st.set_page_config(page_title="ResumeAI Optimizer", page_icon="🚀", layout="wi
 
 st.markdown("""
 <style>
+/* CSS optimizations for mobile & clean design */
 .main .block-container {
-    padding-top: 2rem;
-    padding-bottom: 2rem;
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
 }
 h1 {
     background: -webkit-linear-gradient(45deg, #3b82f6, #8b5cf6);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 0px;
+    font-size: 2.5rem;
+}
+@media (max-width: 768px) {
+    h1 { font-size: 2rem; }
+    .subtitle { font-size: 1rem; }
 }
 .subtitle {
     color: #6b7280;
@@ -164,27 +202,47 @@ h1 {
     max-width: 800px;
     background: white;
     padding: 40px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    border-radius: 8px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+    border-radius: 12px;
     margin: 0 auto;
     border: 1px solid #e5e7eb;
+}
+@media (max-width: 768px) {
+    .a4-container {
+        padding: 15px; /* smaller padding on mobile */
+    }
+}
+/* Input boxes styling */
+.stTextArea textarea {
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+.stTextArea textarea:focus {
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 1px #8b5cf6;
+}
+.css-1n76uvr {
+    gap: 1.5rem;
 }
 </style>
 """, unsafe_allow_html=True)
 
 st.title("ResumeAI 🚀")
-st.markdown("<div class='subtitle'>Smart Resume Optimizer — Pure Python Version</div>", unsafe_allow_html=True)
+st.markdown("<div class='subtitle'>Smart Resume Optimizer — Clean & Mobile Optimized</div>", unsafe_allow_html=True)
 
 col1, col2 = st.columns([1, 1.2], gap="large")
 
 with col1:
     st.header("Inputs")
-    resume_text = st.text_area("Existing Resume", height=250, placeholder="Paste your current resume content here...")
     
-    job_desc_text = st.text_area("Job Description", height=200, placeholder="Paste the target job description here...")
+    st.markdown("**(1) Upload Your Existing Resume**")
+    uploaded_resume = st.file_uploader("Upload PDF or DOCX file", type=["pdf", "docx"], label_visibility="collapsed")
     
-    st.markdown("**(Optional) Upload Job Description Image**")
-    uploaded_image = st.file_uploader("If the JD is an image, upload it here", type=["png", "jpg", "jpeg"])
+    st.markdown("**(2) Target Job Description**")
+    job_desc_text = st.text_area("Paste the target job description text...", height=150, label_visibility="collapsed")
+    
+    st.markdown("**(Optional) Upload JD as Image**")
+    uploaded_image = st.file_uploader("If the JD is an image, upload it here", type=["png", "jpg", "jpeg"], label_visibility="collapsed")
     
     img_b64 = ""
     if uploaded_image is not None:
@@ -192,11 +250,11 @@ with col1:
         mime_type = uploaded_image.type
         encoded = base64.b64encode(file_bytes).decode()
         img_b64 = f"data:{mime_type};base64,{encoded}"
-        st.success("Image successfully loaded.")
+        st.success("Image attached successfully.")
 
     st.markdown("---")
-    st.subheader("Advanced Company Research")
-    enable_advanced = st.checkbox("Enable Advanced Company Research")
+    st.subheader("Advanced Settings")
+    enable_advanced = st.checkbox("Enable Company Research")
     company_name = ""
     if enable_advanced:
         company_name = st.text_input("Target Company Name", placeholder="e.g., Google, CyberNext...")
@@ -211,32 +269,39 @@ with col2:
         st.session_state['optimized_html'] = ""
         
     if optimize_btn:
-        if not resume_text.strip() or (not job_desc_text.strip() and not img_b64):
-            st.error("Please provide both an existing resume and a job description (text or image).")
+        if uploaded_resume is None:
+            st.error("Please upload your existing resume (.pdf or .docx).")
+        elif not job_desc_text.strip() and not img_b64:
+            st.error("Please provide a job description (text or image).")
         elif enable_advanced and not company_name.strip():
-            st.error("Please enter the target company name or disable Advanced Company Research.")
+            st.error("Please enter the target company name or disable Company Research.")
         else:
-            with st.spinner("Tailoring your resume with AI..."):
-                raw_html = optimize_resume(resume_text, job_desc_text, img_b64, company_name)
+            with st.spinner("Extracting text and tailoring resume with AI..."):
+                extracted_resume_text = extract_text_from_file(uploaded_resume)
                 
-                clean_html = raw_html.strip()
-                if clean_html.startswith('```html'):
-                    clean_html = clean_html[7:]
-                elif clean_html.startswith('```'):
-                    clean_html = clean_html[3:]
-                if clean_html.endswith('```'):
-                    clean_html = clean_html[:-3]
-                clean_html = clean_html.strip()
-                
-                st.session_state['optimized_html'] = clean_html
-                st.success("Optimization Complete!")
+                if not extracted_resume_text.strip():
+                    st.error("Could not extract any text from the uploaded file. Please ensure it's a valid PDF or DOCX.")
+                else:
+                    raw_html = optimize_resume(extracted_resume_text, job_desc_text, img_b64, company_name)
+                    
+                    clean_html = raw_html.strip()
+                    if clean_html.startswith('```html'):
+                        clean_html = clean_html[7:]
+                    elif clean_html.startswith('```'):
+                        clean_html = clean_html[3:]
+                    if clean_html.endswith('```'):
+                        clean_html = clean_html[:-3]
+                    clean_html = clean_html.strip()
+                    
+                    st.session_state['optimized_html'] = clean_html
+                    st.success("Optimization Complete!")
 
     if st.session_state['optimized_html']:
         html_content = st.session_state['optimized_html']
         
         # Download HTML Button
         st.download_button(
-            label="📄 Download HTML File (Open in browser and Print to PDF)",
+            label="📄 Download Resume (Open in browser and Print to PDF)",
             data=html_content,
             file_name="tailored_resume.html",
             mime="text/html",
@@ -250,4 +315,4 @@ with col2:
             scrolling=True
         )
     else:
-        st.info("Fill out the inputs on the left and click **Optimize Resume** to generate your tailored resume.")
+        st.info("Upload your resume, provide a job description, and click **Optimize Resume** to generate your tailored single-page resume.")
