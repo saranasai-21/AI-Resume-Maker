@@ -55,6 +55,7 @@ HTML_PREVIEW_TEMPLATE = """<!DOCTYPE html>
     justify-content: center;
     align-items: flex-start;
     min-height: 100vh;
+    overflow-x: hidden;
   }}
   .preview-wrapper {{
     width: 100%;
@@ -63,6 +64,12 @@ HTML_PREVIEW_TEMPLATE = """<!DOCTYPE html>
     align-items: flex-start;
     padding: 15px;
     box-sizing: border-box;
+  }}
+  .scale-container {{
+    width: 794px;
+    height: 1123px;
+    transform-origin: top left;
+    transition: transform 0.2s ease-out;
   }}
   .a4-page {{
     width: 794px;
@@ -74,8 +81,6 @@ HTML_PREVIEW_TEMPLATE = """<!DOCTYPE html>
     border-radius: 4px;
     position: relative;
     overflow: hidden;
-    transform-origin: top center;
-    transition: transform 0.2s ease-out;
   }}
   .resume-content {{
     width: 100%;
@@ -126,9 +131,11 @@ HTML_PREVIEW_TEMPLATE = """<!DOCTYPE html>
 </head>
 <body>
   <div class="preview-wrapper">
-    <div class="a4-page">
-      <div id="resume" class="resume-content">
-        {html_content}
+    <div class="scale-container">
+      <div class="a4-page">
+        <div id="resume" class="resume-content">
+          {html_content}
+        </div>
       </div>
     </div>
   </div>
@@ -136,19 +143,19 @@ HTML_PREVIEW_TEMPLATE = """<!DOCTYPE html>
   <script>
     function adjustScale() {{
       const wrapper = document.querySelector('.preview-wrapper');
-      const page = document.querySelector('.a4-page');
-      if (!wrapper || !page) return;
+      const container = document.querySelector('.scale-container');
+      if (!wrapper || !container) return;
       
-      const wrapperWidth = wrapper.clientWidth;
-      // Page width is 794px. Allow 30px padding for safety margin.
-      if (wrapperWidth < 824) {{
-        const scale = (wrapperWidth - 30) / 794;
-        page.style.transform = `scale(${{scale}})`;
-        // Scale container height proportionally so there is no extra white space
-        wrapper.style.height = (1123 * scale + 30) + 'px';
+      const wrapperWidth = wrapper.clientWidth - 30; // subtract padding
+      if (wrapperWidth < 794) {{
+        const scale = wrapperWidth / 794;
+        container.style.transform = `scale(${{scale}})`;
+        container.style.width = (794 * scale) + 'px';
+        container.style.height = (1123 * scale) + 'px';
       }} else {{
-        page.style.transform = 'none';
-        wrapper.style.height = 'auto';
+        container.style.transform = 'none';
+        container.style.width = '794px';
+        container.style.height = '1123px';
       }}
     }}
 
