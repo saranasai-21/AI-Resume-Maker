@@ -9,104 +9,84 @@ app_file: app.py
 pinned: false
 ---
 
-# 📄 ResumeAI Optimizer
+# ResumeAI Optimizer
+An advanced AI-powered resume tailoring and optimization system developed using Streamlit, Python, and multi-agent LLM routing. This project optimizes and tailors resumes to target job descriptions, roles, or job description images to ensure they are ATS-compliant and fit exactly onto a single A4 page.
 
-ResumeAI Optimizer is a premium, AI-powered Streamlit web application designed to tailor your resume to a specific job description, job role, or job description image, ensuring it is optimized for Applicant Tracking Systems (ATS) and formatted to fit perfectly on exactly **one A4 page**.
+📌 Project Overview
+A professional resume is critical for:
+- Passing Applicant Tracking Systems (ATS)
+- Tailoring key skills to specific job requirements
+- Highlighting relevant work experience using strong action verbs
+- Fitting high-impact career details on a single A4 page
+- Standing out to hiring managers and recruiters
 
-Using a multi-agent system with automatic failovers and rate-limit retries, ResumeAI Optimizer ensures high reliability and quality by routing requests across Gemini, Groq, and OpenRouter APIs.
+This project uses a multi-agent routing system across different LLM providers (Gemini, Groq, and OpenRouter) to rewrite, format, and align your resume to a target job description or role. The system features a modern Streamlit interface with a live single-page A4 preview and multi-format (PDF/DOCX) download options.
 
----
+Deep Learning & LLM Architecture
+The resume optimizer uses:
+- **Multi-Agent & Multi-Provider Routing**: Connects to Gemini, Groq, and OpenRouter APIs.
+- **Sequential Fallback Mechanism**: Sequentially queries up to 6 configured Gemini keys first, falling back to Groq, and then OpenRouter if previous attempts fail or get rate-limited.
+- **Vision Integration**: Utilizes Gemini 2.5 Flash for analyzing uploaded Job Description (JD) images.
+- **Custom System Prompt & Guidelines**: Enforces ATS compliance, single-page format constraints, and zero-hallucination rules.
+- **Automated Rate Limit Handling**: Automatic detection of HTTP 429 errors with built-in delay and retry logic.
 
-## ✨ Key Features
+📊 Feature & Alignment Options
+The system is built to process:
+- **Resume Uploads**: Parses text from PDF and DOCX files (including paragraph and table data).
+- **Target Job Description Text**: Direct input text parser for specific job requirements.
+- **Target Job Role**: AI-powered role researching (looks up standard industry expectations for a role when a full JD is not available).
+- **JD Image Scan**: Base64 image-to-text decoding using LLM vision capabilities.
+- **Target Company Alignment**: Tone and style alignment specific to a company's hiring standards and work culture (e.g. Google, Stripe).
 
-- **🎯 ATS-Optimized Tailoring**: Rewrites career summaries, structures and highlights relevant skills, and enhances experience bullet points using high-impact action verbs.
-- **📄 Single-Page A4 Constraint**: Features a dynamic client-side scaling and font-reduction engine that automatically scales the resume HTML to fit perfectly on a single A4 page without overflowing or scrolling.
-- **💼 Flexible Input Methods**:
-  - **Job Description (JD) Text**: Paste direct text requirements.
-  - **Target Job Role**: When full descriptions aren't available, the AI researches the industry standard requirements for the role.
-  - **JD Image Upload**: Supports scanning job description images using LLM vision capabilities.
-- **🏢 Company-Specific Alignment**: Option to align the tone, terminology, and engineering/business culture specifically with top target employers (e.g., Google, Stripe, CyberNext).
-- **🤖 Robust Multi-Agent Routing & Failover**:
-  - Automatically queries available API keys sequentially.
-  - Configurable with up to **6 Gemini Keys** (Gemini Agents 1-6) using the newer `gemini-2.5-flash` model.
-  - Falls back to **Groq Agent** (`llama-3.3-70b-versatile`) or **OpenRouter Agent** (`google/gemini-flash-1.5`) if primary agents hit rate limits or fail.
-  - Implements automatic retry on 429 rate limit errors with exponential backoffs.
-- **📥 Premium Document Formats**:
-  - **Live Single-Page A4 Preview**: Dynamic iframe previewing of HTML resume rendering.
-  - **Download PDF**: Server-side PDF rendering via WeasyPrint (or instructions for printing via browser for exact scaling).
-  - **Download DOCX**: Auto-generated Word documents via `python-docx` and `BeautifulSoup4` featuring customized margins, typography, and section styling.
-  - **Extracted Plain Text**: View and copy the markdown plain-text equivalent of the tailored resume.
+📈 System Features & Quality
+| Feature | Implementation Details |
+| --- | --- |
+| **A4 Single-Page Fit** | Auto-font-scaling loop using client-side JavaScript to reduce font size dynamically (from 11px down to 7.5px) if content exceeds page bounds. |
+| **ATS Formatting** | Plain Arial/Georgia typography, clean hierarchy (H1, H2, H3, list bullets), no layout tables, and no multi-column formats. |
+| **Downloadable DOCX** | Server-side conversion using BeautifulSoup4 and `python-docx` to format margins (0.5"), headings, bullet points, and contact details. |
+| **Downloadable PDF** | Server-side HTML-to-PDF rendering using WeasyPrint with styling, with fallback print-to-pdf instructions. |
 
----
+Technologies Used
+- Python
+- Streamlit
+- WeasyPrint
+- PyPDF
+- python-docx
+- BeautifulSoup4
+- Requests / API integration
 
-## 🛠️ Technology Stack
+🚀 Streamlit Application
+The Streamlit dashboard allows users to:
+- Upload existing resumes in PDF or DOCX format.
+- Input target job details via text description, job role, or image upload.
+- Choose optional target company styling.
+- Preview the tailored resume in real-time in a single-page A4 mockup.
+- Download the optimized resume in PDF or DOCX format, or copy the markdown plain-text translation.
 
-- **Frontend/App Framework**: [Streamlit](https://streamlit.io/)
-- **Document Processing**: `pypdf`, `python-docx`, `beautifulsoup4`, `lxml`
-- **PDF Generation**: `weasyprint`
-- **AI Integration**: Custom HTTP requests interacting with Gemini (`generativelanguage.googleapis.com`), Groq, and OpenRouter APIs.
+Run the Project
+Install System Dependencies (For PDF rendering via WeasyPrint)
+- **Windows**: Install GTK+ or MSYS2 packages for `pango` and `cairo`.
+- **Linux (Debian/Ubuntu)**:
+  `sudo apt-get install libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf-2.0-0 libffi-dev shared-mime-info`
 
----
+Install Python Requirements
+- `pip install -r requirements.txt`
 
-## 🚀 Getting Started
+Run Streamlit App
+- `streamlit run app.py`
 
-### 📋 Prerequisites
+📂 Project Structure
+ResumeAI Optimizer
+│
+├── app.py
+├── api_router.py
+├── document_parser.py
+├── prompts.py
+├── requirements.txt
+├── packages.txt
+└── README.md
 
-Ensure you have Python 3.9+ installed on your machine.
+Developed as an advanced AI career tool using multi-agent architectures for professional resume customization.
 
-### 🔧 Installation
-
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/saranasai-21/AI-Resume-Maker.git
-   cd AI-Resume-Maker
-   ```
-
-2. **Install System Dependencies** (Required for PDF Generation via WeasyPrint):
-   - **Windows**: Install GTK+ or MSYS2 packages for `pango` and `cairo`.
-   - **Linux**: Install package requirements via `apt`:
-     ```bash
-     sudo apt-get install libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf-2.0-0 libffi-dev shared-mime-info
-     ```
-
-3. **Install Python Packages**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-### 🔑 Configuration (API Keys)
-
-The application pulls API keys from either Streamlit Secrets (for cloud deployment like Hugging Face Spaces) or local environment variables.
-
-Create a `.env` file or export the variables in your shell:
-```env
-# Gemini API keys (configure up to 6 for multi-agent fallback)
-GEMINI_KEY_1=your_gemini_key_here
-GEMINI_KEY_2=your_second_gemini_key_here
-
-# Groq API key (optional fallback)
-GROQ_KEY=your_groq_key_here
-
-# OpenRouter API key (optional fallback)
-OPENROUTER_KEY=your_openrouter_key_here
-```
-
-### 💻 Running Locally
-
-Launch the Streamlit web application:
-```bash
-streamlit run app.py
-```
-
-Open `http://localhost:8501` in your browser.
-
----
-
-## 📁 Repository Structure
-
-- [app.py](file:///c:/Users/Sarana%20Sai%20Bagadi/Downloads/AI-Resume-Maker/app.py): The main entry point of the Streamlit application setting up the premium theme, customized styling cards, tabs, inputs, and download structures.
-- [api_router.py](file:///c:/Users/Sarana%20Sai%20Bagadi/Downloads/AI-Resume-Maker/api_router.py): Houses routing logic, multi-agent fallback sequences, rate limit retries, API request payloads, and safety checks.
-- [document_parser.py](file:///c:/Users/Sarana%20Sai%20Bagadi/Downloads/AI-Resume-Maker/document_parser.py): Contains utilities to extract text from PDF/DOCX files, parse generated HTML back to structured markdown, and compile HTML content into downloadable PDF/DOCX bytes.
-- [prompts.py](file:///c:/Users/Sarana%20Sai%20Bagadi/Downloads/AI-Resume-Maker/prompts.py): System instructions, tailoring guidelines (single-page constraint, ATS layout, no hallucination rules), and the core HTML preview template.
-- [requirements.txt](file:///c:/Users/Sarana%20Sai%20Bagadi/Downloads/AI-Resume-Maker/requirements.txt): Python dependencies list.
-- [packages.txt](file:///c:/Users/Sarana%20Sai%20Bagadi/Downloads/AI-Resume-Maker/packages.txt): Linux package dependencies for PDF rendering.
+🌐 Live Demo
+Streamlit App / HF Space: https://huggingface.co/spaces/fournew/ResumeAI-Optimizer
