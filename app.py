@@ -255,7 +255,7 @@ div[data-testid="stDownloadButton"] button:hover {
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
 </style>
-""", unsafe_allow_html=True)
+""")
 
 # Helper functions for status notifications to match requested designs
 def show_success(message: str):
