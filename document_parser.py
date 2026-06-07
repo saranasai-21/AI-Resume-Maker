@@ -56,16 +56,6 @@ def extract_text_from_file(uploaded_file) -> str:
                     if row_text:
                         text += row_text + "\n"
             
-            # Bold run extraction (BUG 2 bold run fix)
-            bold_texts = []
-            for para in doc.paragraphs:
-                for run in para.runs:
-                    if run.bold and run.text.strip():
-                        bold_texts.append(run.text.strip())
-                        
-            if bold_texts:
-                text += "\n\n--- Highlighted Section Headers (Bold Text) ---\n" + "\n".join(bold_texts) + "\n"
-                
             return text.strip()
         except Exception as e:
             st.error(f"Error reading DOCX: {e}")
