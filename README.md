@@ -1,14 +1,3 @@
----
-title: ResumeAI Optimizer
-emoji: 🚀
-colorFrom: blue
-colorTo: purple
-sdk: streamlit
-sdk_version: 1.35.0
-app_file: app.py
-pinned: false
----
-
 # ResumeAI Optimizer
 An advanced AI-powered resume tailoring and optimization system developed using Streamlit, Python, and multi-agent LLM routing. This project optimizes and tailors resumes to target job descriptions, roles, or job description images to ensure they are ATS-compliant and fit exactly onto a single A4 page.
 
