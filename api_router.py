@@ -1,7 +1,12 @@
 import os
 import requests
 import streamlit as st
+import time
+import logging
 from prompts import SYSTEM_PROMPT, get_optimization_prompt, get_company_research_prompt
+
+# Configure logging for Hugging Face Spaces stderr visibility
+logging.basicConfig(level=logging.INFO)
 
 def get_key(name: str) -> str:
     """
@@ -76,6 +81,11 @@ def call_gemini(key: str, sys_prompt: str, prompt: str, image_b64: str) -> str:
         raise Exception(f"Gemini API returned status {response.status_code}: {response.text}")
         
     data = response.json()
+    
+    # Safety Block Check (HF Space deployment checks, point 3)
+    if 'promptFeedback' in data and data['promptFeedback'].get('blockReason'):
+        raise Exception(f"Gemini safety block: {data['promptFeedback']['blockReason']}")
+        
     try:
         text = data['candidates'][0]['content']['parts'][0]['text']
         return text
@@ -150,7 +160,17 @@ def run_resume_optimization(resume_text: str, job_desc_text: str, job_role: str,
     for p in providers:
         try:
             if p["type"] == "gemini":
-                result = call_gemini(p["key"], sys_prompt, prompt, job_image_base64)
+                try:
+                    result = call_gemini(p["key"], sys_prompt, prompt, job_image_base64)
+                except Exception as e:
+                    # Retry once on 429 (BUG 4 & HF check 2)
+                    if "429" in str(e):
+                        print(f"[ResumeAI] {p['name']} hit 429. Retrying in 3 seconds...", flush=True)
+                        logging.warning(f"{p['name']} hit 429. Retrying in 3 seconds...")
+                        time.sleep(3)
+                        result = call_gemini(p["key"], sys_prompt, prompt, job_image_base64)
+                    else:
+                        raise e
                 return {"success": True, "content": result, "provider": p["name"], "errors": errors}
                 
             elif p["type"] == "groq":
@@ -169,10 +189,11 @@ def run_resume_optimization(resume_text: str, job_desc_text: str, job_role: str,
                 return {"success": True, "content": result, "provider": p["name"], "errors": errors}
                 
             elif p["type"] == "openrouter":
+                # Using google/gemini-flash-1.5 as free tier fallback
                 result = call_openai_compatible(
                     url="https://openrouter.ai/api/v1/chat/completions",
                     key=p["key"],
-                    model="anthropic/claude-3.5-sonnet",
+                    model="google/gemini-flash-1.5",
                     sys_prompt=sys_prompt,
                     prompt=prompt,
                     image_b64=job_image_base64,
@@ -181,7 +202,14 @@ def run_resume_optimization(resume_text: str, job_desc_text: str, job_role: str,
                 return {"success": True, "content": result, "provider": p["name"], "errors": errors}
                 
         except Exception as e:
+            # Print and log errors (BUG 3 fix)
+            print(f"[ResumeAI] ERROR: {p['name']} failed: {e}", flush=True)
+            logging.error(f"{p['name']} failed: {e}")
             errors.append(f"{p['name']} failed: {str(e)}")
+            
+            # Delay between provider attempts (BUG 4 delay fix)
+            if p != providers[-1]:
+                time.sleep(1.5)
             continue
             
     # If all agents failed
