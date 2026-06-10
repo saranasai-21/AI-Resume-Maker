@@ -3,7 +3,10 @@ import requests
 import streamlit as st
 import time
 import logging
-from prompts import SYSTEM_PROMPT, get_optimization_prompt, get_company_research_prompt
+from prompts import (
+    SYSTEM_PROMPT, get_optimization_prompt, get_company_research_prompt,
+    STAGE1_SYSTEM_PROMPT, STAGE2_SYSTEM_PROMPT, get_stage1_prompt, get_stage2_prompt
+)
 
 # Configure logging for Hugging Face Spaces stderr visibility
 logging.basicConfig(level=logging.INFO)
@@ -166,15 +169,11 @@ def call_openai_compatible(url: str, key: str, model: str, sys_prompt: str, prom
 
 def run_resume_optimization(resume_text: str, job_desc_text: str, job_role: str, job_image_base64: str, company_name: str) -> dict:
     """
-    Runs the multi-provider fallback resume optimization routing.
-    Returns a dict: {"success": bool, "content": str, "provider": str, "errors": list}
+    Runs the multi-provider fallback resume optimization routing in two stages:
+    Stage 1: Content tailoring using the first available provider.
+    Stage 2: HTML layout formatting using the next available provider.
     """
     providers = get_providers()
-    
-    # Pre-build prompts
-    sys_prompt = SYSTEM_PROMPT + get_company_research_prompt(company_name)
-    prompt = get_optimization_prompt(resume_text, job_desc_text, job_role)
-    
     if not providers:
         return {
             "success": False,
@@ -184,64 +183,144 @@ def run_resume_optimization(resume_text: str, job_desc_text: str, job_role: str,
         }
         
     errors = []
-    for p in providers:
+    
+    # ------------------ STAGE 1: CONTENT TAILORING ------------------
+    stage1_prompt = get_stage1_prompt(resume_text, job_desc_text, job_role)
+    stage1_sys = STAGE1_SYSTEM_PROMPT + get_company_research_prompt(company_name)
+    
+    stage1_text = ""
+    stage1_provider_idx = -1
+    stage1_provider_name = ""
+    
+    for idx, p in enumerate(providers):
         try:
             if p["type"] == "gemini":
                 try:
-                    result = call_gemini(p["key"], sys_prompt, prompt, job_image_base64)
+                    res = call_gemini(p["key"], stage1_sys, stage1_prompt, job_image_base64)
                 except Exception as e:
-                    # Retry once on 429 (BUG 4 & HF check 2)
+                    # Retry once on 429
                     if "429" in str(e):
-                        print(f"[ResumeAI] {p['name']} hit 429. Retrying in 3 seconds...", flush=True)
-                        logging.warning(f"{p['name']} hit 429. Retrying in 3 seconds...")
+                        print(f"[ResumeAI] Stage 1: {p['name']} hit 429. Retrying in 3 seconds...", flush=True)
                         time.sleep(3)
-                        result = call_gemini(p["key"], sys_prompt, prompt, job_image_base64)
+                        res = call_gemini(p["key"], stage1_sys, stage1_prompt, job_image_base64)
                     else:
                         raise e
-                return {"success": True, "content": result, "provider": p["name"], "errors": errors}
+                stage1_text = res
                 
             elif p["type"] == "groq":
                 if job_image_base64:
                     errors.append("Groq skipped: Vision input not supported by Groq agent.")
                     continue
-                result = call_openai_compatible(
+                res = call_openai_compatible(
                     url="https://api.groq.com/openai/v1/chat/completions",
                     key=p["key"],
                     model="llama-3.3-70b-versatile",
-                    sys_prompt=sys_prompt,
-                    prompt=prompt,
+                    sys_prompt=stage1_sys,
+                    prompt=stage1_prompt,
                     image_b64=None,
                     provider_name="groq"
                 )
-                return {"success": True, "content": result, "provider": p["name"], "errors": errors}
+                stage1_text = res
                 
             elif p["type"] == "openrouter":
-                # Using google/gemini-flash-1.5 as free tier fallback
-                result = call_openai_compatible(
+                res = call_openai_compatible(
                     url="https://openrouter.ai/api/v1/chat/completions",
                     key=p["key"],
                     model="google/gemini-flash-1.5",
-                    sys_prompt=sys_prompt,
-                    prompt=prompt,
+                    sys_prompt=stage1_sys,
+                    prompt=stage1_prompt,
                     image_b64=job_image_base64,
                     provider_name="openrouter"
                 )
-                return {"success": True, "content": result, "provider": p["name"], "errors": errors}
+                stage1_text = res
                 
+            if stage1_text and stage1_text.strip():
+                stage1_provider_idx = idx
+                stage1_provider_name = p["name"]
+                break
         except Exception as e:
-            # Print and log errors (BUG 3 fix)
-            print(f"[ResumeAI] ERROR: {p['name']} failed: {e}", flush=True)
-            logging.error(f"{p['name']} failed: {e}")
-            errors.append(f"{p['name']} failed: {str(e)}")
-            
-            # Delay between provider attempts (BUG 4 delay fix)
+            print(f"[ResumeAI] Stage 1 ERROR: {p['name']} failed: {e}", flush=True)
+            errors.append(f"Stage 1 {p['name']} failed: {str(e)}")
             if p != providers[-1]:
                 time.sleep(1.5)
             continue
             
-    # If all agents failed
-    error_msg = (
-        f"<div style='color:#ef4444; font-weight:bold; margin-bottom:10px;'>All AI agents failed or rate limited:</div>"
-        f"<ul style='color:#ef4444; font-size:12px;'>" + "".join(f"<li>{e}</li>" for e in errors) + "</ul>"
-    )
-    return {"success": False, "content": error_msg, "provider": "Fallback failure", "errors": errors}
+    if not stage1_text or not stage1_text.strip():
+        error_msg = (
+            f"<div style='color:#ef4444; font-weight:bold; margin-bottom:10px;'>Stage 1: Content tailoring failed on all providers:</div>"
+            f"<ul style='color:#ef4444; font-size:12px;'>" + "".join(f"<li>{e}</li>" for e in errors) + "</ul>"
+        )
+        return {"success": False, "content": error_msg, "provider": "Fallback failure", "errors": errors}
+        
+    # ------------------ STAGE 2: FORMATTING & LAYOUT ------------------
+    # Prefer the next provider in the list to avoid rate limits
+    stage2_providers = []
+    if len(providers) > 1:
+        stage2_providers = providers[stage1_provider_idx + 1:] + providers[:stage1_provider_idx + 1]
+    else:
+        stage2_providers = providers
+        
+    stage2_prompt = get_stage2_prompt(stage1_text)
+    stage2_sys = STAGE2_SYSTEM_PROMPT
+    
+    final_html = ""
+    stage2_provider_name = ""
+    
+    for p in stage2_providers:
+        try:
+            # We don't pass the image to Stage 2 since it's formatting text only
+            if p["type"] == "gemini":
+                try:
+                    res = call_gemini(p["key"], stage2_sys, stage2_prompt, None)
+                except Exception as e:
+                    if "429" in str(e):
+                        print(f"[ResumeAI] Stage 2: {p['name']} hit 429. Retrying in 3 seconds...", flush=True)
+                        time.sleep(3)
+                        res = call_gemini(p["key"], stage2_sys, stage2_prompt, None)
+                    else:
+                        raise e
+                final_html = res
+                
+            elif p["type"] == "groq":
+                res = call_openai_compatible(
+                    url="https://api.groq.com/openai/v1/chat/completions",
+                    key=p["key"],
+                    model="llama-3.3-70b-versatile",
+                    sys_prompt=stage2_sys,
+                    prompt=stage2_prompt,
+                    image_b64=None,
+                    provider_name="groq"
+                )
+                final_html = res
+                
+            elif p["type"] == "openrouter":
+                res = call_openai_compatible(
+                    url="https://openrouter.ai/api/v1/chat/completions",
+                    key=p["key"],
+                    model="google/gemini-flash-1.5",
+                    sys_prompt=stage2_sys,
+                    prompt=stage2_prompt,
+                    image_b64=None,
+                    provider_name="openrouter"
+                )
+                final_html = res
+                
+            if final_html and final_html.strip():
+                stage2_provider_name = p["name"]
+                break
+        except Exception as e:
+            print(f"[ResumeAI] Stage 2 ERROR: {p['name']} failed: {e}", flush=True)
+            errors.append(f"Stage 2 {p['name']} failed: {str(e)}")
+            if p != stage2_providers[-1]:
+                time.sleep(1.5)
+            continue
+            
+    if not final_html or not final_html.strip():
+        error_msg = (
+            f"<div style='color:#ef4444; font-weight:bold; margin-bottom:10px;'>Stage 2: Formatting failed on all providers:</div>"
+            f"<ul style='color:#ef4444; font-size:12px;'>" + "".join(f"<li>{e}</li>" for e in errors) + "</ul>"
+        )
+        return {"success": False, "content": error_msg, "provider": "Fallback failure", "errors": errors}
+        
+    combined_provider = f"{stage1_provider_name} (Content) → {stage2_provider_name} (Format)"
+    return {"success": True, "content": final_html, "provider": combined_provider, "errors": errors}

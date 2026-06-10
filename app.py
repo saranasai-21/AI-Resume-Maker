@@ -447,9 +447,9 @@ if st.session_state['optimized_html']:
             label_visibility="collapsed"
         )
         
-    # Download Bar (HTML added back as fallback)
+    # Download Bar (HTML removed)
     st.markdown("<br><div style='font-size:14px; margin-bottom:8px; font-weight:600;'>Download Tailored Formats</div>", unsafe_allow_html=True)
-    dcol1, dcol2, dcol3 = st.columns(3)
+    dcol1, dcol2 = st.columns(2)
     with dcol1:
         if pdf_bytes:
             st.download_button(
@@ -467,14 +467,6 @@ if st.session_state['optimized_html']:
             data=docx_bytes,
             file_name="tailored_resume.docx",
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            use_container_width=True
-        )
-    with dcol3:
-        st.download_button(
-            label="🌐 Download HTML",
-            data=html_content,
-            file_name="tailored_resume.html",
-            mime="text/html",
             use_container_width=True
         )
         
