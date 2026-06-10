@@ -41,12 +41,13 @@ def get_optimization_prompt(resume_text: str, job_desc_text: str = "", job_role:
 STAGE1_SYSTEM_PROMPT = """You are an elite professional resume writer and career coach. Your goal is to rewrite, refine, and tailor the user's resume content to match the target job description or job role with maximum impact.
 
 STRICT CONTENT RULES:
-1. CAREER OBJECTIVE / SUMMARY: Rewrite this section completely (maximum 3 sentences). Align it directly with the target job description or role, utilizing key industry terms and expressing a strong value proposition.
-2. SKILLS SECTION: Re-write the skills section to strictly align with the requirements of the job. Select the most relevant skills from the user's resume and group them logically (e.g., Programming Languages, Frameworks & Libraries, Tools & Databases). Add and adjust relevant technologies and keywords from the job description that the user is likely to have based on their experience. Do NOT include irrelevant skills.
-3. EXPERIENCE BULLET POINTS: Rewrite and optimize bullet points to start with strong action verbs (e.g., Developed, Led, Architected, Optimized). Seamlessly integrate keywords and phrases from the job description or role. Keep experience bullet points concise, using no more than 4-5 bullet points per role. Quantify achievements where possible.
-4. PROJECTS SECTION: Do NOT delete any projects from the uploaded resume. Keep all original projects. If relevant to the target job description or role, add 1 or 2 new high-quality projects (based on target industry standards and keywords) that demonstrate necessary skills.
-5. NO HALLUCINATION: Do NOT invent fake degrees, certifications, or work experience dates. Keep all facts, education, and dates strictly accurate.
-6. Return the tailored resume in clean Markdown/plain text format with clear section headings. Do not output any HTML or code."""
+1. HEADLINE / PROFESSIONAL TITLE: You MUST rewrite the candidate's professional subtitle/headline (the line of tags directly below their name) to match the target job role. If the target is "Software Developer" or "Software Engineer", change the headline to reflect standard software engineering roles and keywords (e.g., "Software Engineer | Backend Developer | Python | SQL | REST APIs | Git" instead of "AI/ML Engineer | Gen AI...").
+2. CAREER OBJECTIVE / SUMMARY: Rewrite this section completely (maximum 3 sentences). Align it directly with the target job description or role, utilizing key industry terms and expressing a strong value proposition.
+3. SKILLS SECTION: You MUST rewrite and re-align the skills section to strictly match the target job requirements. For a Software Engineer/Developer, remove overly specialized research or data science tools unless relevant, and explicitly add and highlight core software engineering skills and tools (such as JavaScript, React, SQL, PostgreSQL, REST APIs, Git, Algorithms & Data Structures, OOP, Software Design Patterns, Docker) that the user likely has baseline knowledge of or are needed for the role. Group them logically (e.g. Programming Languages, Web Frameworks, Databases, Developer Tools). Do NOT include irrelevant skills.
+4. EXPERIENCE BULLET POINTS: Rewrite and optimize bullet points to start with strong action verbs (e.g., Developed, Led, Architected, Optimized). Highlight software engineering contributions (refactoring, performance improvement, unit testing, writing REST APIs, clean code practices). Keep experience bullet points concise, using no more than 3-4 bullet points per role. Quantify achievements where possible.
+5. PROJECTS SECTION: Do NOT delete any projects from the uploaded resume. Keep all original projects. If relevant to the target job description or role, add 1 or 2 new high-quality projects (based on target industry standards and keywords) that demonstrate necessary skills. Focus descriptions on software development methodologies and backend/frontend engineering.
+6. NO HALLUCINATION: Do NOT invent fake degrees, certifications, or work experience dates. Keep all facts, education, and dates strictly accurate.
+7. Return the tailored resume in clean Markdown/plain text format with clear section headings. Do not output any HTML or code."""
 
 STAGE2_SYSTEM_PROMPT = """You are an elite frontend developer and professional resume designer. Your goal is to take a tailored resume in text format and format it into a stunning, ATS-friendly single-page HTML resume.
 
@@ -123,7 +124,7 @@ HTML_PREVIEW_TEMPLATE = """<!DOCTYPE html>
   .a4-page {{
     width: 794px;
     height: 1123px;
-    padding: 40px 50px;
+    padding: 25px 35px;
     box-sizing: border-box;
     background: #ffffff;
     box-shadow: 0 8px 32px rgba(0,0,0,0.6);
@@ -143,37 +144,37 @@ HTML_PREVIEW_TEMPLATE = """<!DOCTYPE html>
   /* Standard modern resume formatting defaults to guide LLM layout */
   .resume-content h1 {{
     font-size: 18px;
-    margin: 0 0 4px 0;
+    margin: 0 0 3px 0;
     text-align: center;
     color: #111827;
   }}
   .resume-content h2 {{
-    font-size: 12px;
+    font-size: 11px;
     text-transform: uppercase;
     border-bottom: 1px solid #d1d5db;
-    margin: 10px 0 6px 0;
+    margin: 8px 0 4px 0;
     padding-bottom: 2px;
     color: #1f2937;
   }}
   .resume-content h3 {{
-    font-size: 11px;
-    margin: 6px 0 2px 0;
+    font-size: 10px;
+    margin: 4px 0 1px 0;
     color: #374151;
   }}
   .resume-content p {{
-    margin: 0 0 3px 0;
+    margin: 0 0 2px 0;
   }}
   .resume-content ul {{
-    margin: 0 0 4px 0;
+    margin: 0 0 3px 0;
     padding-left: 20px;
   }}
   .resume-content li {{
-    margin-bottom: 2px;
+    margin-bottom: 1px;
   }}
   .contact-info {{
     text-align: center;
-    margin-bottom: 15px;
-    font-size: 10px;
+    margin-bottom: 10px;
+    font-size: 9.5px;
     color: #4b5563;
   }}
 </style>
