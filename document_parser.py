@@ -101,6 +101,9 @@ def generate_pdf_bytes(html_str: str) -> bytes:
     """
     try:
         from weasyprint import HTML
+        if "<style>" not in html_str:
+            import prompts
+            html_str = prompts.HTML_PDF_TEMPLATE.format(html_content=html_str)
         return HTML(string=html_str).write_pdf()
     except Exception as e:
         print(f"[ResumeAI] WeasyPrint PDF generation failed: {e}", flush=True)
