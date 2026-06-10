@@ -1,6 +1,15 @@
 # ResumeAI Optimizer
 An advanced AI-powered resume tailoring and optimization system developed using Streamlit, Python, and multi-agent LLM routing. This project optimizes and tailors resumes to target job descriptions, roles, or job description images to ensure they are ATS-compliant and fit exactly onto a single A4 page.
 
+## Quick‑Start (Software Developer)
+
+1️⃣ Open the app (locally or via the Hugging Face Space).  
+2️⃣ The **Job Role** field is pre‑filled with **Software Developer** – edit only if you need a different role.  
+3️⃣ Upload your existing `Resume.docx` (e.g., the file in your Downloads folder).  
+4️⃣ Click **✨ Optimize & Tailor Resume**.  
+
+The generated resume will be optimized for typical software‑development skills such as Python, Docker, CI/CD, Agile, and Git, while keeping the layout to a single A4 page.
+
 📌 Project Overview
 A professional resume is critical for:
 - Passing Applicant Tracking Systems (ATS)

@@ -329,6 +329,7 @@ with tab_desc:
 with tab_role:
     job_role = st.text_input(
         "Enter target job role...",
+        value="Software Developer",
         placeholder="e.g. Senior Python Backend Developer, Data Scientist, Frontend Developer...",
         label_visibility="collapsed"
     )
