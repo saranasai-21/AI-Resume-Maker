@@ -8,19 +8,46 @@ from prompts import SYSTEM_PROMPT, get_optimization_prompt, get_company_research
 # Configure logging for Hugging Face Spaces stderr visibility
 logging.basicConfig(level=logging.INFO)
 
-def get_key(name: str) -> str:
+def secrets_file_exists() -> bool:
     """
-    Get API key from Streamlit secrets (for Hugging Face Spaces) or environment variables.
+    Check if a streamlit secrets.toml file exists in standard directories
+    to avoid triggering Streamlit's automatic FileNotFoundError warning in the UI.
     """
-    # Try streamlit secrets first
+    paths = [
+        os.path.join(".streamlit", "secrets.toml"),
+        os.path.join("/app", ".streamlit", "secrets.toml"),
+        os.path.join("/root", ".streamlit", "secrets.toml"),
+    ]
     try:
-        if name in st.secrets:
-            return st.secrets[name]
+        home = os.path.expanduser("~")
+        paths.append(os.path.join(home, ".streamlit", "secrets.toml"))
     except Exception:
         pass
-    
-    # Try environment variables
-    return os.environ.get(name, "")
+        
+    for p in paths:
+        if os.path.exists(p):
+            return True
+    return False
+
+def get_key(name: str) -> str:
+    """
+    Get API key from environment variables or Streamlit secrets.
+    Checks environment variables first, then streamlit secrets to avoid UI warnings.
+    """
+    # 1. Try environment variables first
+    val = os.environ.get(name, "")
+    if val:
+        return val
+        
+    # 2. Try streamlit secrets only if secrets file is present
+    if secrets_file_exists():
+        try:
+            if name in st.secrets:
+                return st.secrets[name]
+        except Exception:
+            pass
+            
+    return ""
 
 def get_providers():
     """
