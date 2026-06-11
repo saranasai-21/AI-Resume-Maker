@@ -159,13 +159,15 @@ def parse_markdown_to_html(markdown_text: str) -> str:
             html_out.append(f"<h2>{clean_inline(clean_text)}</h2>")
             continue
             
-        # Check if it is a project / experience title (starts with ### or contains " | ")
+        # Check if it is a project / experience title (starts with ### or contains " | ", " -- ", or " - ")
         is_sub_header = False
         clean_text = line
         if line.startswith("###"):
             is_sub_header = True
             clean_text = line.lstrip("#").strip()
-        elif " | " in line and len(line) < 150:
+        elif not (line.startswith("- ") or line.startswith("* ") or line.startswith("+ ")) and (
+            " | " in line or " -- " in line or " - " in line or line.startswith("Project:") or line.startswith("Role:")
+        ) and len(line) < 120:
             is_sub_header = True
             clean_text = line.lstrip("#").strip()
             
@@ -175,10 +177,26 @@ def parse_markdown_to_html(markdown_text: str) -> str:
                 in_list = False
             html_out.append(f"<h3>{clean_inline(clean_text)}</h3>")
             continue
+
+        # Check if it is a date/location line (often italicized or short metadata like *May 2025 - Jun 2025*)
+        is_date_line = False
+        if not (line.startswith("- ") or line.startswith("* ") or line.startswith("+ ")) and (
+            (line.startswith("*") and line.endswith("*")) or
+            any(m in line for m in ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "202"])
+        ) and len(line) < 60:
+            is_date_line = True
+            clean_text = line.strip("*").strip()
+            
+        if is_date_line:
+            if in_list:
+                html_out.append("</ul>")
+                in_list = False
+            html_out.append(f'<p style="font-style: italic; margin-top: -3px; margin-bottom: 3px; color: #4b5563; font-size: 9.5px;">{clean_inline(clean_text)}</p>')
+            continue
             
         # Check if it is a list item
-        if line.startswith("-") or line.startswith("*"):
-            clean_text = line[1:].strip()
+        if line.startswith("- ") or line.startswith("* ") or line.startswith("+ "):
+            clean_text = line[2:].strip()
             if not in_list:
                 html_out.append("<ul>")
                 in_list = True

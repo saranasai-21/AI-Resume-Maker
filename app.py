@@ -420,7 +420,10 @@ if st.session_state['optimized_html']:
     docx_bytes = document_parser.generate_docx_bytes(html_content)
     pdf_bytes = document_parser.generate_pdf_bytes(html_content)
     
-    show_success(f"Tailored successfully using {st.session_state['active_provider']} and auto-fit to one page!")
+    if "Local Formatting" in st.session_state.get('active_provider', ''):
+        show_success("Changes saved and preview updated locally!")
+    else:
+        show_success(f"Tailored successfully using {st.session_state['active_provider']} and auto-fit to one page!")
     
     # 1. Preview Panel Tabs (A4 Preview and Plain Text Output)
     preview_tab, text_tab = st.tabs([
