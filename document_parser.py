@@ -94,6 +94,108 @@ def convert_html_to_text(html_content: str) -> str:
     text = re.sub(r'\n\s*\n+', '\n\n', text)
     return text.strip()
 
+def parse_markdown_to_html(markdown_text: str) -> str:
+    """
+    Convert tailored plain text markdown back to clean HTML structure locally without APIs.
+    """
+    import re
+    lines = [line.strip() for line in markdown_text.strip().split("\n")]
+    html_out = []
+    
+    # Helper to clean inline formatting (bold/italic)
+    def clean_inline(text: str) -> str:
+        # Convert **bold** to <strong>bold</strong>
+        text = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', text)
+        # Convert *italic* or _italic_ to <em>italic</em>
+        text = re.sub(r'\*(.*?)\*', r'<em>\1</em>', text)
+        text = re.sub(r'_(.*?)_', r'<em>\1</em>', text)
+        return text
+
+    # Extract header info (Name, Subtitle, Contact)
+    header_lines = []
+    rest_lines = []
+    
+    # Collect first 3 non-empty lines for the header
+    for line in lines:
+        if len(header_lines) < 3:
+            if line:
+                # Remove markdown headers if present
+                clean_line = line.lstrip("#").strip()
+                header_lines.append(clean_line)
+        else:
+            rest_lines.append(line)
+            
+    # Render header
+    if len(header_lines) >= 1:
+        html_out.append(f"<h1>{clean_inline(header_lines[0])}</h1>")
+    if len(header_lines) >= 2:
+        html_out.append(f'<div style="text-align: center; font-size: 11px; font-weight: bold; margin-top: -2px; margin-bottom: 6px; color: #4b5563;">{clean_inline(header_lines[1])}</div>')
+    if len(header_lines) >= 3:
+        html_out.append(f'<div class="contact-info">{clean_inline(header_lines[2])}</div>')
+        
+    in_list = False
+    
+    # Process remaining lines
+    for line in rest_lines:
+        if not line:
+            if in_list:
+                html_out.append("</ul>")
+                in_list = False
+            continue
+            
+        # Check if it is a main header (all caps or ## or #)
+        is_main_header = False
+        clean_text = line
+        if line.startswith("##") or line.startswith("#"):
+            is_main_header = True
+            clean_text = line.lstrip("#").strip()
+        elif line.isupper() and len(line) < 30:
+            is_main_header = True
+            
+        if is_main_header:
+            if in_list:
+                html_out.append("</ul>")
+                in_list = False
+            html_out.append(f"<h2>{clean_inline(clean_text)}</h2>")
+            continue
+            
+        # Check if it is a project / experience title (starts with ### or contains " | ")
+        is_sub_header = False
+        clean_text = line
+        if line.startswith("###"):
+            is_sub_header = True
+            clean_text = line.lstrip("#").strip()
+        elif " | " in line and len(line) < 150:
+            is_sub_header = True
+            clean_text = line.lstrip("#").strip()
+            
+        if is_sub_header:
+            if in_list:
+                html_out.append("</ul>")
+                in_list = False
+            html_out.append(f"<h3>{clean_inline(clean_text)}</h3>")
+            continue
+            
+        # Check if it is a list item
+        if line.startswith("-") or line.startswith("*"):
+            clean_text = line[1:].strip()
+            if not in_list:
+                html_out.append("<ul>")
+                in_list = True
+            html_out.append(f"<li>{clean_inline(clean_text)}</li>")
+            continue
+            
+        # Otherwise it is a normal paragraph
+        if in_list:
+            html_out.append("</ul>")
+            in_list = False
+        html_out.append(f"<p>{clean_inline(line)}</p>")
+        
+    if in_list:
+        html_out.append("</ul>")
+        
+    return "\n".join(html_out)
+
 def generate_pdf_bytes(html_str: str) -> bytes:
     """
     Generate PDF bytes server-side from the HTML string. (BUG 6 fix)

@@ -451,23 +451,14 @@ if st.session_state['optimized_html']:
         # Submit button for text modifications
         update_btn = st.button("🔄 Render Text Changes to Layout", key="btn_render_text_changes", use_container_width=True)
         if update_btn:
-            with st.spinner("⏳ Processing text changes and re-aligning page layout..."):
-                result = api_router.run_stage2_only(edited_text)
-                if result["success"]:
-                    clean_html = result["content"].strip()
-                    if clean_html.startswith('```html'):
-                        clean_html = clean_html[7:]
-                    elif clean_html.startswith('```'):
-                        clean_html = clean_html[3:]
-                    if clean_html.endswith('```'):
-                        clean_html = clean_html[:-3]
-                    clean_html = clean_html.strip()
-                    
+            with st.spinner("⏳ Applying text changes locally..."):
+                try:
+                    clean_html = document_parser.parse_markdown_to_html(edited_text).strip()
                     st.session_state['optimized_html'] = clean_html
-                    st.session_state['active_provider'] = f"Manual Edits ({result['provider']})"
+                    st.session_state['active_provider'] = "Manual Changes (Local Formatting)"
                     st.rerun()
-                else:
-                    show_error(f"Re-rendering failed: {result['content']}")
+                except Exception as e:
+                    show_error(f"Re-rendering failed: {str(e)}")
         
     # Download Bar (HTML removed)
     st.markdown("<br><div style='font-size:14px; margin-bottom:8px; font-weight:600;'>Download Tailored Formats</div>", unsafe_allow_html=True)
