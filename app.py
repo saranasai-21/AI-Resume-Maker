@@ -439,13 +439,35 @@ if st.session_state['optimized_html']:
         )
         
     with text_tab:
-        st.caption("Copy or inspect the plain text markdown output generated from the tailored resume:")
-        st.text_area(
+        st.caption("Edit the plain text markdown below and click the button to update your layout preview and downloadable formats:")
+        edited_text = st.text_area(
             "Plain Text Output",
-            plain_text_resume,
-            height=800,
-            label_visibility="collapsed"
+            value=plain_text_resume,
+            height=600,
+            label_visibility="collapsed",
+            key="edited_plain_text"
         )
+        
+        # Submit button for text modifications
+        update_btn = st.button("🔄 Render Text Changes to Layout", key="btn_render_text_changes", use_container_width=True)
+        if update_btn:
+            with st.spinner("⏳ Processing text changes and re-aligning page layout..."):
+                result = api_router.run_stage2_only(edited_text)
+                if result["success"]:
+                    clean_html = result["content"].strip()
+                    if clean_html.startswith('```html'):
+                        clean_html = clean_html[7:]
+                    elif clean_html.startswith('```'):
+                        clean_html = clean_html[3:]
+                    if clean_html.endswith('```'):
+                        clean_html = clean_html[:-3]
+                    clean_html = clean_html.strip()
+                    
+                    st.session_state['optimized_html'] = clean_html
+                    st.session_state['active_provider'] = f"Manual Edits ({result['provider']})"
+                    st.rerun()
+                else:
+                    show_error(f"Re-rendering failed: {result['content']}")
         
     # Download Bar (HTML removed)
     st.markdown("<br><div style='font-size:14px; margin-bottom:8px; font-weight:600;'>Download Tailored Formats</div>", unsafe_allow_html=True)

@@ -324,3 +324,77 @@ def run_resume_optimization(resume_text: str, job_desc_text: str, job_role: str,
         
     combined_provider = f"{stage1_provider_name} (Content) → {stage2_provider_name} (Format)"
     return {"success": True, "content": final_html, "provider": combined_provider, "errors": errors}
+
+def run_stage2_only(tailored_text: str) -> dict:
+    """
+    Runs Stage 2 (formatting) only, using the available providers.
+    """
+    providers = get_providers()
+    if not providers:
+        return {
+            "success": False,
+            "content": "<h2>Error: No API keys configured.</h2>",
+            "provider": "None",
+            "errors": ["No active API keys found."]
+        }
+    
+    errors = []
+    stage2_prompt = get_stage2_prompt(tailored_text)
+    stage2_sys = STAGE2_SYSTEM_PROMPT
+    
+    final_html = ""
+    stage2_provider_name = ""
+    
+    for p in providers:
+        try:
+            if p["type"] == "gemini":
+                try:
+                    res = call_gemini(p["key"], stage2_sys, stage2_prompt, None)
+                except Exception as e:
+                    if "429" in str(e):
+                        print(f"[ResumeAI] Stage 2 Only: {p['name']} hit 429. Retrying in 3 seconds...", flush=True)
+                        time.sleep(3)
+                        res = call_gemini(p["key"], stage2_sys, stage2_prompt, None)
+                    else:
+                        raise e
+                final_html = res
+                
+            elif p["type"] == "groq":
+                res = call_openai_compatible(
+                    url="https://api.groq.com/openai/v1/chat/completions",
+                    key=p["key"],
+                    model="llama-3.3-70b-versatile",
+                    sys_prompt=stage2_sys,
+                    prompt=stage2_prompt,
+                    image_b64=None,
+                    provider_name="groq"
+                )
+                final_html = res
+                
+            elif p["type"] == "openrouter":
+                res = call_openai_compatible(
+                    url="https://openrouter.ai/api/v1/chat/completions",
+                    key=p["key"],
+                    model="google/gemini-flash-1.5",
+                    sys_prompt=stage2_sys,
+                    prompt=stage2_prompt,
+                    image_b64=None,
+                    provider_name="openrouter"
+                )
+                final_html = res
+                
+            if final_html and final_html.strip():
+                stage2_provider_name = p["name"]
+                break
+        except Exception as e:
+            print(f"[ResumeAI] Stage 2 Only ERROR: {p['name']} failed: {e}", flush=True)
+            errors.append(f"Stage 2 {p['name']} failed: {str(e)}")
+            if p != providers[-1]:
+                time.sleep(1.5)
+            continue
+            
+    if not final_html or not final_html.strip():
+        error_msg = "Formatting failed on all providers: " + ", ".join(errors)
+        return {"success": False, "content": error_msg, "provider": "Fallback failure", "errors": errors}
+        
+    return {"success": True, "content": final_html.strip(), "provider": stage2_provider_name, "errors": errors}
